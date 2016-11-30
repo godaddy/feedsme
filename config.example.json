@@ -1,0 +1,29 @@
+{
+  "http": {
+    "hostname": "127.0.0.1",
+    "port": 1212
+  },
+  "log": {
+    "level": "verbose"
+  },
+  "json": {
+    "limit": "500mb",
+    "extended": false
+  },
+  "carpenter": "http://localhost:1339",
+  "npm": "http://localhost:2390",
+  "datastar": {
+    "config": {
+      "keyspace": "feedsme_test",
+      "user": "cassandra",
+      "password": "cassandra",
+      "hosts": [
+       "127.0.0.1"
+      ],
+      "keyspaceOptions": {
+        "class": "SimpleStrategy",
+        "replication_factor": 1
+      }
+    }
+  }
+}
