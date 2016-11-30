@@ -1,0 +1,61 @@
+{
+  "name": "feedsme",
+  "version": "1.6.0",
+  "description": "A changes feed micro service",
+  "main": "./lib/index.js",
+  "scripts": {
+    "100%": "istanbul check-coverage --statements 100 --functions 100 --lines 100 --branches 100",
+    "test": "mocha test.js",
+    "watch": "mocha --watch test.js",
+    "coverage": "istanbul cover _mocha -- test.js",
+    "start": "bin/server",
+    "eslint": "godaddy-js-style-eslint -c .eslintrc ./*.js lib/",
+    "jscs": "godaddy-js-style-jscs ./*.js lib/",
+    "lint": "npm run jscs && npm run eslint",
+    "pretest": "npm run lint"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/godaddy/feedsme.git"
+  },
+  "keywords": [
+    "changes",
+    "_changes",
+    "feed",
+    "feedme",
+    "feedsme"
+  ],
+  "author": "GoDaddy Operating Company, LLC",
+  "contributors": [
+    "Arnout Kazemier",
+    "Martijn Swaagman",
+    "Jarrett Cruger",
+    "Charlie Robbins"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "async": "^1.4.0",
+    "body-parser": "^1.13.0",
+    "carpenter-api-client": "^1.3.0",
+    "datastar": "~1.3.2",
+    "errs": "^0.3.0",
+    "eventemitter3": "^1.1.0",
+    "json-stream": "^1.0.0",
+    "one-time": "0.0.4",
+    "warehouse-models": "^5.0.0",
+    "slay": "^0.6.0",
+    "slay-config": "^2.0.1",
+    "slay-log": "^2.1.0",
+    "winston": "~2.2.0"
+  },
+  "devDependencies": {
+    "assume": "^1.4.0",
+    "assume-sinon": "~1.0.0",
+    "godaddy-style": "^3.1.0",
+    "istanbul": "^0.3.0",
+    "mocha": "^2.3.0",
+    "nock": "^2.11.0",
+    "request": "^2.78.0",
+    "sinon": "~1.17.6"
+  }
+}
