@@ -1,5 +1,5 @@
-/* eslint max-nested-callbacks: 0 */
-/* eslint no-invalid-this: 0 */
+/* eslint max-nested-callbacks: 0, no-invalid-this: 0, max-statements: 0, no-process-env: 0 */
+
 describe('feedsme', function () {
   'use strict';
 
@@ -109,7 +109,7 @@ describe('feedsme', function () {
         });
       });
 
-      it('validates if it received a valid package json', function (next) {
+      it('validates if it received a valid package json', function (done) {
         async.each([
           {},
           { hello: 'world' },
@@ -129,7 +129,7 @@ describe('feedsme', function () {
 
             next();
           });
-        }, next);
+        }, done);
       });
     });
   });
@@ -233,8 +233,8 @@ describe('feedsme', function () {
 
     describe('#resolve', function () {
       it('only adds private dependencies to dependend', function (next) {
-        fme.resolve('dev', fixtures.parent, function (err) {
-          if (err) return next(err);
+        fme.resolve('dev', fixtures.parent, function (error) {
+          if (error) return next(error);
 
           app.models.Dependent.findOne({
             conditions: {
@@ -259,7 +259,7 @@ describe('feedsme', function () {
       it('triggers the carpenter for each dependend module with pkgjson', function (next) {
         next = assume.wait(2, next);
 
-        carpenter.once('build', function (url, body) {
+        carpenter.once('build', function (uri, body) {
           body = JSON.parse(body);
 
           assume(body).is.a('object');
