@@ -23,8 +23,8 @@ package.json is then processed in 2 ways:
 
 ## Tests
 
-Make sure [Cassandra] is running local. Cassandra can be installed through
-[homebrew] for MacOS or run as docker container from [docker hub][hub].
+[Cassandra] should be running local. It can be installed through
+[homebrew] for MacOS or run the docker container from [docker hub][hub].
 
 ```sh
 npm test
