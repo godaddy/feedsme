@@ -4,3 +4,5 @@ node_js:
   - "4"
 services:
   - cassandra
+before_install:
+  - "npm install -g npm@3"
