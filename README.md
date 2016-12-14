@@ -1,5 +1,7 @@
 # feedsme
 
+[![Build Status](https://travis-ci.org/godaddy/feedsme.svg?branch=master)](https://travis-ci.org/godaddy/feedsme)
+
 Feedsme is a micro service that receive build completion notifications
 from [carpenterd]. When these notifications are received we will try to find all
 dependent modules on the package that was just build and send them in for
