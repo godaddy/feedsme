@@ -45,10 +45,11 @@
     "eventemitter3": "^1.1.0",
     "json-stream": "^1.0.0",
     "one-time": "0.0.4",
-    "warehouse-models": "^5.0.0",
+    "semver": "~5.3.0",
     "slay": "^1.0.0",
     "slay-config": "^2.0.1",
     "slay-log": "^2.1.0",
+    "warehouse-models": "^5.0.0",
     "winston": "~2.2.0"
   },
   "devDependencies": {

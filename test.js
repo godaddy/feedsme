@@ -139,7 +139,7 @@ describe('feedsme', function () {
     var fixtures = {
       dependent: {
         'name': 'email',
-        'version': '2.0',
+        'version': '2.0.0',
         'main': 'index.js',
         'dependencies': {
           'moment': '0.0.x',
@@ -151,7 +151,7 @@ describe('feedsme', function () {
       },
       parent: {
         'name': 'cows',
-        'version': '2.0',
+        'version': '2.0.0',
         'main': 'index.js',
         'dependencies': {
           'moment': '0.0.x',
@@ -162,10 +162,16 @@ describe('feedsme', function () {
         }
       },
       version: {
-        'versionId': 'cows@2.0',
+        'versionId': 'cows@2.0.0',
         'value': '{}',
         'name': 'cows',
-        'version': '2.0'
+        'version': '2.0.0'
+      },
+      head: {
+        'name': 'cows',
+        'version': '2.0.0',
+        'env': 'prod',
+        'locale': 'en-US'
       }
     };
 
@@ -189,7 +195,8 @@ describe('feedsme', function () {
       async.parallel([
         app.models.Package.create.bind(app.models.Package, fixtures.dependent),
         app.models.Package.create.bind(app.models.Package, fixtures.parent),
-        app.models.Version.create.bind(app.models.Version, fixtures.version)
+        app.models.Version.create.bind(app.models.Version, fixtures.version),
+        app.models.BuildHead.create.bind(app.models.BuildHead, fixtures.head)
       ], next);
     });
 
@@ -197,7 +204,8 @@ describe('feedsme', function () {
       async.parallel([
         app.models.Package.remove.bind(app.models.Package, fixtures.dependent),
         app.models.Package.remove.bind(app.models.Package, fixtures.parent),
-        app.models.Version.remove.bind(app.models.Version, fixtures.version)
+        app.models.Version.remove.bind(app.models.Version, fixtures.version),
+        app.models.BuildHead.remove.bind(app.models.BuildHead, fixtures.head)
       ], next);
     });
 
@@ -219,7 +227,7 @@ describe('feedsme', function () {
       // Fake npm responses.
       //
       nock(app.config.get('npm'))
-      .get('/cows/-/cows-2.0.tgz')
+      .get('/cows/-/cows-2.0.0.tgz')
       .reply(200, function (uri, body) {
         carpenter.emit('npm', uri, body, this);
 
@@ -261,13 +269,13 @@ describe('feedsme', function () {
 
         carpenter.once('build', function (uri, body) {
           body = JSON.parse(body);
-
           assume(body).is.a('object');
           assume(body.name).equals(fixtures.parent.name);
           assume(body.dependencies).contains(fixtures.dependent.name);
           assume(body._attachments).is.a('object');
-          assume(body._attachments).contains('cows-2.0.tgz');
+          assume(body._attachments).contains('cows-2.0.0.tgz');
           assume(body.env).equals('prod');
+          assume(body.version).contains('-');
 
           next();
         });
@@ -282,7 +290,7 @@ describe('feedsme', function () {
         var spyResolve = sinon.spy(fme, 'resolve');
         var spyDependent = sinon.spy(fme.app.models.Dependent, 'get');
 
-        fme.change('dev', fixtures.payload, function (err, results) {
+        fme.change('prod', fixtures.payload, function (err, results) {
           assume(err).to.be.falsy();
           assume(results).to.be.an('array');
           assume(results).to.have.length(2);
