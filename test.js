@@ -275,7 +275,7 @@ describe('feedsme', function () {
           assume(body._attachments).is.a('object');
           assume(body._attachments).contains('cows-2.0.0.tgz');
           assume(body.env).equals('prod');
-          assume(body.version).contains('-');
+          assume(body['dist-tags'].latest).contains('-');
 
           next();
         });
