@@ -273,7 +273,7 @@ describe('feedsme', function () {
           assume(body.name).equals(fixtures.parent.name);
           assume(body.dependencies).contains(fixtures.dependent.name);
           assume(body._attachments).is.a('object');
-          assume(body._attachments).contains('cows-2.0.0.tgz');
+          assume(body._attachments).contains('cows-2.0.1-0.tgz');
           assume(body.env).equals('prod');
           assume(body['dist-tags'].latest).contains('-');
 
