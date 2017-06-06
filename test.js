@@ -223,6 +223,14 @@ describe('feedsme', function () {
         return { ok: true };
       });
 
+      nock(app.config.get('warehouse'))
+        .put('/cows')
+        .reply(200, function (uri, body) {
+          carpenter.emit('publish', uri, body, this);
+
+          return { ok: true };
+        });
+
       //
       // Fake npm responses.
       //
@@ -267,7 +275,7 @@ describe('feedsme', function () {
       it('triggers the carpenter for each dependend module with pkgjson', function (next) {
         next = assume.wait(2, next);
 
-        carpenter.once('build', function (uri, body) {
+        carpenter.once('publish', function (uri, body) {
           body = JSON.parse(body);
           assume(body).is.a('object');
           assume(body.name).equals(fixtures.parent.name);
