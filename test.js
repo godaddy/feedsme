@@ -284,7 +284,7 @@ describe('feedsme', function () {
           assume(body._attachments).contains('cows-2.0.1-0.tgz');
           assume(body.env).equals('prod');
           assume(body['dist-tags'].latest).contains('-');
-          assume(body._id).contains(body.version);
+          assume(body.versions[body['dist-tags'].latest]._id).contains(body.version);
 
           next();
         });
