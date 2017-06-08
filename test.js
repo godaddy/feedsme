@@ -247,6 +247,21 @@ describe('feedsme', function () {
       fme.destroy();
     });
 
+    describe('#_latestHead', function () {
+      it('returns the latest build head version given a set of rollbackIds', function () {
+        const head = {
+          'rollbackBuildIds': {
+            'Thu Jun 08 2017 02:04:19 GMT+0000 (UTC)': 'some-package!dev!2.3.9-0!en-US',
+            'Thu Jun 08 2017 02:27:11 GMT+0000 (UTC)': 'some-package!dev!2.3.9-2!en-US'
+          },
+          'createDate': '2017-06-08T02:27:11.657Z',
+          'udpateDate': '2017-06-08T02:27:11.657Z',
+          'version': '2.3.9-1'
+        };
+        assume(fme._latestHead(head)).equals('2.3.9-2');
+      });
+    });
+
     describe('#resolve', function () {
       it('only adds private dependencies to dependend', function (next) {
         fme.resolve('dev', fixtures.parent, function (error) {
