@@ -1,6 +1,6 @@
 {
   "name": "feedsme",
-  "version": "1.10.4",
+  "version": "1.10.5",
   "description": "A changes feed micro service",
   "main": "./lib/index.js",
   "bin": {
