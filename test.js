@@ -1,7 +1,7 @@
 /* eslint max-nested-callbacks: 0, no-invalid-this: 0, max-statements: 0, no-process-env: 0 */
 
 describe('feedsme', function () {
-  'use strict';
+
 
   var EventEmitter = require('events').EventEmitter;
   var sinonAssume = require('assume-sinon');
@@ -15,7 +15,7 @@ describe('feedsme', function () {
   var nock = require('nock');
   var url = require('url');
 
-  var carpenter = new EventEmitter()
+  var carpenter = new EventEmitter();
   var root;
   var app;
 
@@ -138,40 +138,40 @@ describe('feedsme', function () {
     var fme;
     var fixtures = {
       dependent: {
-        'name': 'email',
-        'version': '2.0.0',
-        'main': 'index.js',
-        'dependencies': {
-          'moment': '0.0.x',
-          'slay': '*'
+        name: 'email',
+        version: '2.0.0',
+        main: 'index.js',
+        dependencies: {
+          moment: '0.0.x',
+          slay: '*'
         },
-        'config': {
-          'locale': 'en'
+        config: {
+          locale: 'en'
         }
       },
       parent: {
-        'name': 'cows',
-        'version': '2.0.0',
-        'main': 'index.js',
-        'dependencies': {
-          'moment': '0.0.x',
-          'email': '*'
+        name: 'cows',
+        version: '2.0.0',
+        main: 'index.js',
+        dependencies: {
+          moment: '0.0.x',
+          email: '*'
         },
-        'config': {
-          'locale': 'en'
+        config: {
+          locale: 'en'
         }
       },
       version: {
-        'versionId': 'cows@2.0.0',
-        'value': '{}',
-        'name': 'cows',
-        'version': '2.0.0'
+        versionId: 'cows@2.0.0',
+        value: '{}',
+        name: 'cows',
+        version: '2.0.0'
       },
       head: {
-        'name': 'cows',
-        'version': '2.0.0',
-        'env': 'prod',
-        'locale': 'en-US'
+        name: 'cows',
+        version: '2.0.0',
+        env: 'prod',
+        locale: 'en-US'
       }
     };
 
@@ -179,14 +179,14 @@ describe('feedsme', function () {
     // Mimic payload from npm.
     //
     fixtures.payload = {
-      name: fixtures.parent.name,
+      'name': fixtures.parent.name,
       'dist-tags': {
         latest: fixtures.parent.version
       },
-      versions: {
+      'versions': {
         [fixtures.parent.version]: fixtures.parent
       },
-      _attachments: ''
+      '_attachments': ''
     };
 
     this.timeout(60000);
@@ -216,12 +216,12 @@ describe('feedsme', function () {
       // Fake carpenter responses.
       //
       nock(app.config.get('carpenter'))
-      .post('/build')
-      .reply(200, function reply(uri, body) {
-        carpenter.emit('build', uri, body, this);
+        .post('/build')
+        .reply(200, function reply(uri, body) {
+          carpenter.emit('build', uri, body, this);
 
-        return { ok: true };
-      });
+          return { ok: true };
+        });
 
       nock(app.config.get('warehouse'))
         .put('/cows')
@@ -235,12 +235,12 @@ describe('feedsme', function () {
       // Fake npm responses.
       //
       nock(app.config.get('npm'))
-      .get('/cows/-/cows-2.0.0.tgz')
-      .reply(200, function (uri, body) {
-        carpenter.emit('npm', uri, body, this);
+        .get('/cows/-/cows-2.0.0.tgz')
+        .reply(200, function (uri, body) {
+          carpenter.emit('npm', uri, body, this);
 
-        return require('fs').readFileSync(__filename); // eslint-disable-line no-sync
-      });
+          return require('fs').readFileSync(__filename); // eslint-disable-line no-sync
+        });
     });
 
     afterEach(function () {
@@ -250,13 +250,13 @@ describe('feedsme', function () {
     describe('#_latestHead', function () {
       it('returns the latest build head version given a set of rollbackIds', function () {
         const head = {
-          'rollbackBuildIds': {
+          rollbackBuildIds: {
             'Thu Jun 08 2017 02:04:19 GMT+0000 (UTC)': 'some-package!dev!2.3.9-0!en-US',
             'Thu Jun 08 2017 02:27:11 GMT+0000 (UTC)': 'some-package!dev!2.3.9-2!en-US'
           },
-          'createDate': '2017-06-08T02:27:11.657Z',
-          'udpateDate': '2017-06-08T02:27:11.657Z',
-          'version': '2.3.9-1'
+          createDate: '2017-06-08T02:27:11.657Z',
+          udpateDate: '2017-06-08T02:27:11.657Z',
+          version: '2.3.9-1'
         };
         assume(fme._latestHead(head)).equals('2.3.9-2');
       });
