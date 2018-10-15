@@ -43,6 +43,7 @@
     "eventemitter3": "^1.1.0",
     "express-async-handler": "^1.1.4",
     "json-stream": "^1.0.0",
+    "make-promises-safe": "^1.1.0",
     "one-time": "0.0.4",
     "p-filter": "^1.0.0",
     "p-limit": "^2.0.0",
@@ -50,12 +51,12 @@
     "slay": "^1.0.0",
     "slay-config": "^2.0.1",
     "slay-log": "^2.1.0",
-    "warehouse-models": "^5.8.0",
+    "warehouse-models": "^5.9.0",
     "warehouse.ai-api-client": "~2.0.1",
     "winston": "~2.2.0"
   },
   "devDependencies": {
-    "assume": "^1.4.0",
+    "assume": "^2.1.0",
     "assume-sinon": "~1.0.0",
     "eslint": "^4.19.1",
     "eslint-config-godaddy": "^2.1.0",
@@ -65,6 +66,6 @@
     "nock": "^2.11.0",
     "nyc": "^13.0.1",
     "request": "^2.78.0",
-    "sinon": "~1.17.6"
+    "sinon": "^7.0.0"
   }
 }

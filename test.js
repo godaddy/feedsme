@@ -1,4 +1,5 @@
 /* eslint max-nested-callbacks: 0, no-invalid-this: 0, max-statements: 0, no-process-env: 0 */
+require('make-promises-safe');
 
 describe('feedsme', function () {
 
@@ -53,7 +54,7 @@ describe('feedsme', function () {
   });
 
   after(function (next) {
-    app.close(next);
+    app.models.drop(() => app.close(next));
   });
 
   describe('routes', function () {
@@ -152,6 +153,9 @@ describe('feedsme', function () {
       parent: {
         name: 'cows',
         version: '2.0.0',
+        distTags: {
+          latest: '2.0.0'
+        },
         main: 'index.js',
         dependencies: {
           moment: '0.0.x',
@@ -161,18 +165,39 @@ describe('feedsme', function () {
           locale: 'en'
         }
       },
-      version: {
-        versionId: 'cows@2.0.0',
-        value: '{}',
-        name: 'cows',
-        version: '2.0.0'
-      },
       head: {
         name: 'cows',
         version: '2.0.0',
-        env: 'prod',
+        env: 'dev',
         locale: 'en-US'
       }
+    };
+
+    fixtures.version = {
+      versionId: 'cows@2.0.0',
+      value: JSON.stringify({
+        'name': fixtures.parent.name,
+        'dist-tags': {
+          latest: fixtures.parent.version
+        },
+        'versions': {
+          [fixtures.parent.version]: fixtures.parent
+        }
+      }),
+      name: 'cows',
+      version: '2.0.0'
+    };
+
+    fixtures.dependentPayloadPublished = {
+      'name': fixtures.dependent.name,
+      'dist-tags': {
+        latest: fixtures.dependent.version
+      },
+      'versions': {
+        [fixtures.dependent.version]: fixtures.dependent
+      },
+      '_attachments': '',
+      '__published': true
     };
 
     //
@@ -263,31 +288,25 @@ describe('feedsme', function () {
     });
 
     describe('#resolve', function () {
-      it('only adds private dependencies to dependend', function (next) {
-        fme.resolve('dev', fixtures.parent, function (error) {
-          if (error) return next(error);
+      it('only adds private dependencies to dependend', async function () {
+        await fme.resolve('dev', fixtures.parent);
 
-          app.models.Dependent.findOne({
-            conditions: {
-              name: fixtures.dependent.name
-            }
-          }, function (err, data) {
-            if (err) return next();
+        const data = await fme.models.Dependent.get(fixtures.dependent.name);
 
-            var dependent = data.dependents;
+        const dependent = data.dependents;
 
-            assume(dependent).is.length(1);
-            assume(dependent).is.a('array');
-            assume(dependent).includes(fixtures.parent.name);
+        assume(dependent).is.length(1);
+        assume(dependent).is.a('array');
+        assume(dependent).includes(fixtures.parent.name);
 
-            next();
-          });
-        });
+        const depOf = await fme.models.DependentOf.get(fixtures.parent.name);
+        const dependentOf = depOf.dependentOf;
+        assume(dependentOf).equals(fixtures.dependent.name);
       });
     });
 
     describe('#trigger', function () {
-      it('triggers the carpenter for each dependend module with pkgjson', function (next) {
+      it('triggers carpenter for each dependend module with pkgjson for dev: legacy', function (next) {
         next = assume.wait(2, next);
 
         carpenter.once('publish', function (uri, body) {
@@ -297,38 +316,34 @@ describe('feedsme', function () {
           assume(body.dependencies).contains(fixtures.dependent.name);
           assume(body._attachments).is.a('object');
           assume(body._attachments).contains('cows-2.0.1-0.tgz');
-          assume(body.env).equals('prod');
+          assume(body.env).equals('dev');
           assume(body['dist-tags'].latest).contains('-');
           assume(body.versions[body['dist-tags'].latest]._id).contains(body.version);
 
           next();
         });
 
-        fme.trigger('prod', fixtures.dependent, next);
+        fme.trigger('dev', fixtures.dependentPayloadPublished).then(next.bind(null, null), next);
       });
     });
 
     describe('#change', function () {
-      it('will trigger and resolve the package payload', function (next) {
-        var spyTrigger = sinon.spy(fme, 'trigger');
-        var spyResolve = sinon.spy(fme, 'resolve');
-        var spyDependent = sinon.spy(fme.app.models.Dependent, 'get');
+      it('will trigger and resolve the package payload', async function () {
+        const spyTrigger = sinon.spy(fme, 'trigger');
+        const spyResolve = sinon.spy(fme, 'resolve');
+        const spyDependent = sinon.spy(fme.models.Dependent, 'get');
 
-        fme.change('prod', fixtures.payload, function (err, results) {
-          assume(err).to.be.falsy();
-          assume(results).to.be.an('array');
-          assume(results).to.have.length(2);
-          assume(spyTrigger.calledOnce).to.be.true();
-          assume(spyResolve.calledOnce).to.be.true();
-          assume(spyDependent.secondCall).to.not.equal(null);
-          assume(spyDependent.secondCall).to.be.calledWith('email');
+        await fme.change('prod', fixtures.payload);
+        assume(spyTrigger.calledOnce).to.be.true();
+        assume(spyResolve.calledOnce).to.be.true();
+        // since resolve is called first rather than in parallel
+        assume(spyDependent.firstCall).to.not.equal(null);
+        assume(spyDependent.firstCall).to.be.calledWith('email');
 
-          spyTrigger.restore();
-          spyResolve.restore();
-          spyDependent.restore();
+        spyTrigger.restore();
+        spyResolve.restore();
+        spyDependent.restore();
 
-          next();
-        });
       });
     });
 
@@ -341,11 +356,11 @@ describe('feedsme', function () {
       });
 
       it('removes the app reference', function () {
-        assume(fme.app).equals(app);
+        assume(fme.log).equals(app.log);
 
         fme.destroy();
 
-        assume(fme.app).equals(null);
+        assume(fme.log).equals(null);
       });
     });
   });
