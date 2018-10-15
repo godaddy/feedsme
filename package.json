@@ -7,7 +7,7 @@
     "feedsme": "bin/server"
   },
   "scripts": {
-    "test": "nyc mocha test.js",
+    "test": "nyc --reporter=text --reporter=lcov mocha test.js",
     "watch": "mocha --watch test.js",
     "start": "bin/server",
     "lint": "eslint-godaddy --fix ./*.js lib/",
