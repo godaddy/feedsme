@@ -418,6 +418,26 @@ describe('feedsme', function () {
 
       });
 
+      it('should publish new version of dependent package in semver of previous releaseLine and update accordingly', async function () {
+        // relies on previous test currently
+        const pkg = 'what';
+        const version = '3.0.0';
+        const env = 'dev';
+        const inc = 'major';
+
+        let { child, childPackage } = clone(fixtures.first);
+        childPackage = increment(childPackage, 'package', { env, inc, dependencies: [pkg] });
+        childPackage = increment(childPackage, 'package', { env, inc: 'minor' });
+        child = increment(child, 'payload', { env, inc, dependencies: [pkg] });
+        child = increment(child, 'payload', { env, inc: 'minor' });
+
+        await fme.change(env, child);
+
+        const release = await fme.release.get({ pkg, version });
+        assume(release.dependents).contains(childPackage.name);
+        assume(release.dependents[childPackage.name]).equals(childPackage.version);
+      });
+
       it('should simulate publish of existing root package (new major) and bump  version of dependent package when semver is inclusive', async function () {
         const  { Package, Version } = fme.models;
         const env = 'dev';
