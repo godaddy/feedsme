@@ -84,7 +84,10 @@ describe('feedsme', function () {
       config: {
         file: path.join(__dirname, '..', 'config.example.json'),
         overrides: {
-          http: 0
+          http: {
+            host: '127.0.0.1',
+            port: 0
+          }
         }
       }
     }, function (err, instance) {
