@@ -10,7 +10,7 @@
     "test": "nyc --reporter=text --reporter=lcov mocha test/*.test.js",
     "watch": "mocha --watch test/*.test.js",
     "start": "bin/server",
-    "lint": "eslint-godaddy --fix './*.js' 'lib/', 'test/*.js'",
+    "lint": "eslint -c .eslintrc --fix './*.js' 'lib/', 'test/*.js'",
     "pretest": "npm run lint"
   },
   "repository": {
