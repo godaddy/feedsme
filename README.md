@@ -12,33 +12,67 @@ This ensures that all dependencies on your packages are always updated.
 
 ## Architecture overview
 
-When carpenter completes a build it will trigger a `POST /change` on the Feedsme
+When `carpenterd` queues a build it will trigger a `POST /change` on the Feedsme
 microservice with the `package.json` contents of the package that was built. The
-package.json is then processed in 2 ways:
+package.json is then processed in a few ways to allow tracking and triggering of
+dependent packages to be built. To make it concrete, a dependent package of
+package `A` would be package `B` if `B` has `A` as a dependency. So now if a new
+version of `A` is published, a dependent build will be triggered for `B` to get
+the changes made to `A`. The
 
-1. Fetch all dependent packages of `package.name` and `POST /build` to the
-   carpenter microservice to trigger a re-build of these packages as this
-   dependency got updated.
-2. Iterate over all dependencies, figure out which once's are private and add
-   this `package.name` as dependent on that module.
-3. ???
-4. Profit
+latest work we have done to this project, creating
+a `release-line` data structure ensures that this is safely based on the given
+`semver` ranges. Lets start to get into the specifics
 
-### Trigger re-build
+## `release-line`
 
-Below is a scenario for what happens when a rebuild is triggered for the given
-environment sequence of DEV -> TEST -> PROD.
+A `release-line` encapsulates the association between package `A`, and the
+version it was published as along with the associated package `B` with its
+auto-incremented version that was published as a result of this system. With
+every publish we now know for certain which version of package `B` will be
+promoted along side package `A` as we move from `DEV -> TEST -> PROD`.
 
-So feedsme's core responsibility as a service is to receive change events from carpenter when a package's build has been triggered to see if that package needs to trigger MORE builds due to its dependents. The core of the logic we go through is found in [here][0]. Now in theory this is simple but the semantics of the auto incrementing is where it gets a bit complex.
+### Resolve Dependents and DependentOf
 
-How it currently exists, each time a build is triggered in DEV, the main package `foo` will trigger a dependent build for `foo-bar`. In this scenario the latest version of `foo-bar` is the latest BuildHead for `DEV` (or it may be the same as the latest published version), so our strategy is to auto-increment from this version and publish that new version to warehouse so it can exist in the registry backend, update the Package model as well as create a Version record. This will in turn trigger a build for this version of `foo-bar` once warehouse calls carpenter, runs a fresh npm install, build the set number of builds and all of `foo` will eventually complete for DEV.
+The first step of processing a `change` event is to resolve the `Dependent`
+packages of the package sent to feedsme as well as resolve any possible
+DependentOf packages. We do this currently by inspecting the dependencies in the
+given package, and seeing which ones are also managed by warehouse. From this
+filtered list of packages, we then create the dependent mapping. The dependency
+itself being the root or parent package like `A` is above and the dependent
+being the child, similar to package `B`. Dependents is a lookup for the parent
+Package which has an array of the packages that depend on it.
 
-Now when a build is triggered for TEST, when `foo-bar` is triggered, it will compare the latest BuildHead in test to the latest version published. We will see that the latest version published is greater than the BuildHead in TEST so we will just use that version in order to trigger our test build rather than auto-incrementing the version based on the BuildHead. In this case we hit carpenter directly with the correct payload and builds will happen as expected, pulling the already existing tarball for this version and then running the webpack builds. PROD also replicates this same scenario.
+DependentOf is the inverse of Dependent and rather than an array, assumes
+a single value. We don't allow there to be multiple parent packages for a given
+dependent. So the DependentOf record is created with the lookup being the
+dependency itself, like package `B` with the `dependentOf` value being the
+parent or package `A`.
 
-But where this breaks down is if there was a new publish to DEV and you now wanted to promote the older version currently in TEST to PROD. If you did this promotion, feedsme would use the latest published version of `foo-bar` to build for PROD because there is no sense of understanding the sequence of promotion or what version it should build. We either auto-increment for the DEV publish of main package case or we use the latest published version so we are reusing tarballs. This assumed that promotions from DEV, TEST -> PROD happened very quickly which is not always the case.
+These lookup tables are then used in the next step.
 
-The above scenario describes how dependent builds work but this will change very
-soon to better handle what would be expected.
+## Trigger dependents or update `release-line` with dependentOf
+
+We now use these lookup tables to make decisions around triggering dependent
+packages and/or adding a dependent to the given `release-line`. Here we have
+a 2 different scenarios that influence our course of action.
+
+1. We are a publish, this is the only time a release-line is created for the
+   given package and is also the only time a release-line can have a dependent
+   added to it. This is because new versions only happen in DEV.
+
+   If we are a package that has dependents, this is the only time the version of
+   the dependent package gets automatically incremented based on the version of
+   the parent package and the semver range of the dependent's dependency on the
+   parent package. It is also possible to not build dependents in DEV if we have
+   detected that a manual publish of the dependent package(s) is(are) essential
+   due to the semver range of the dependent's dependency on the parent package.
+
+2. We are a promotion from `DEV -> TEST` or `TEST -> PROD`. We implicitly use
+   the `release-line` versions created on the initial publish of the package to use
+   for promoting the correct version of dependent packages.
+
+Below we have diagrams of specific cases that we handle.
 
 ## Tests
 
@@ -52,7 +86,6 @@ npm test
 ## License
 MIT
 
-[0]: https://github.com/godaddy/feedsme/blob/master/lib/feedsme/index.js#L93
 [carpenterd]: https://github.com/godaddy/carpenterd
 [Cassandra]: https://cassandra.apache.org/
 [homebrew]: http://brew.sh/
