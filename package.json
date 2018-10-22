@@ -11,6 +11,7 @@
     "watch": "mocha --watch test/*.test.js",
     "start": "bin/server",
     "lint": "eslint -c .eslintrc --fix './*.js' 'lib/', 'test/*.js'",
+    "build": "mmdc -i diagram/code/build.mmd -o diagram/svg/build.svg",
     "pretest": "npm run lint"
   },
   "repository": {
@@ -62,6 +63,7 @@
     "eslint-config-godaddy": "^2.1.0",
     "eslint-plugin-json": "^1.2.1",
     "eslint-plugin-mocha": "^4.12.1",
+    "mermaid.cli": "^0.5.1",
     "mocha": "^5.2.0",
     "nock": "^2.11.0",
     "nyc": "^13.0.1",

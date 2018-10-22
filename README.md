@@ -74,6 +74,14 @@ a 2 different scenarios that influence our course of action.
 
 Below we have diagrams of specific cases that we handle.
 
+## Dependent Duilds Diagram
+
+The premise for this diagram is that we have a package `child@5.0.0` that
+depends on package `root@^5.0.0`. From here we go through a sequence of
+publishes and promotions via the typical warehouse system workflow.
+
+![Build](./diagram/svg/build.svg)
+
 ## Tests
 
 [Cassandra] should be running local. It can be installed through
