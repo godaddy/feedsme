@@ -14,7 +14,7 @@ sequenceDiagram
   LOCAL MACHINE->>+DEV: manual publish of root@6.0.0
   LOCAL MACHINE--X+DEV: auto trigger prevented of child@5.0.1-1
   Note over LOCAL MACHINE,DEV: Prevents deploy because child depends on root@^5.0.0
-  LOCAL MACHINE->>+DEV: manual publish ofchild@6.0.0
+  LOCAL MACHINE->>+DEV: manual publish of child@6.0.0
   Note over LOCAL MACHINE,DEV: Updated child@6 to depend on root@^6.0.0
   DEV->>+TEST: dist-tag promotion of root@6.0.0
   DEV-->>+TEST: auto triggered build of child@6.0.0
