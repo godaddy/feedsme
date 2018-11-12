@@ -228,6 +228,19 @@ describe('feedsme', function () {
       });
     });
 
+    describe('#_triggerStrategy', function () {
+      it('resolves latest version correctly as * and shows any version as inclusive', function () {
+        const rootPkg = { name: 'what', version: '6.0.1' };
+        const pkg = { dependencies: { [rootPkg.name]: 'latest' }};
+        const releaseLine = { version: '6.0.1' };
+        const env = 'dev';
+
+        const { strategy, trigger } = fme._triggerStrategy({ rootPkg, pkg, releaseLine, env });
+        assume(strategy).is.equal('current');
+        assume(trigger).is.equal(true);
+      });
+    });
+
     describe('#resolve', function () {
       it('only adds private dependencies to dependend', async function () {
         await fme.resolve('dev', fixtures.parent);
@@ -265,6 +278,24 @@ describe('feedsme', function () {
         });
 
         fme.trigger('dev', fixtures.dependentPayloadPublished).then(next.bind(null, null), next);
+      });
+
+      it('does not create a new release line when previous release.version is the same', async function () {
+        const prevRelease = {
+          pkg: fixtures.dependent.name,
+          version: fixtures.dependent.version
+        };
+
+        sinon.stub(fme, 'triggerDepOf').resolves();
+        const warnSpy = sinon.spy(fme.log, 'warn');
+        sinon.stub(fme.models.Dependent, 'get').resolves({ dependents: [] });
+        sinon.stub(fme.release, 'get').resolves(prevRelease);
+        const rcreate = sinon.stub(fme.release, 'create').resolves();
+        await fme.trigger('dev', fixtures.dependentPayloadPublished);
+
+        assume(rcreate).is.not.called();
+        assume(warnSpy).is.calledWith('email@2.0.0 already has release-line, ignoring release-line create');
+        sinon.restore();
       });
     });
 
