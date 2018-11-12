@@ -228,6 +228,19 @@ describe('feedsme', function () {
       });
     });
 
+    describe('#_triggerStrategy', function () {
+      it('resolves latest version correctly as * and shows any version as inclusive', function () {
+        const rootPkg = { name: 'what', version: '6.0.1' };
+        const pkg = { dependencies: { [rootPkg.name]: 'latest' }};
+        const releaseLine = { version: '6.0.1' };
+        const env = 'dev';
+
+        const { strategy, trigger } = fme._triggerStrategy({ rootPkg, pkg, releaseLine, env });
+        assume(strategy).is.equal('current');
+        assume(trigger).is.equal(true);
+      });
+    });
+
     describe('#resolve', function () {
       it('only adds private dependencies to dependend', async function () {
         await fme.resolve('dev', fixtures.parent);
