@@ -279,6 +279,24 @@ describe('feedsme', function () {
 
         fme.trigger('dev', fixtures.dependentPayloadPublished).then(next.bind(null, null), next);
       });
+
+      it('does not create a new release line when previous release.version is the same', async function () {
+        const prevRelease = {
+          pkg: fixtures.dependent.name,
+          version: fixtures.dependent.version
+        };
+
+        sinon.stub(fme, 'triggerDepOf').resolves();
+        const warnSpy = sinon.spy(fme.log, 'warn');
+        sinon.stub(fme.models.Dependent, 'get').resolves({ dependents: [] });
+        sinon.stub(fme.release, 'get').resolves(prevRelease);
+        const rcreate = sinon.stub(fme.release, 'create').resolves();
+        await fme.trigger('dev', fixtures.dependentPayloadPublished);
+
+        assume(rcreate).is.not.called();
+        assume(warnSpy).is.calledWith('email@2.0.0 already has release-line, ignoring release-line create');
+        sinon.restore();
+      });
     });
 
     describe('#change', function () {
