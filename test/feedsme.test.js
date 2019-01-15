@@ -256,7 +256,49 @@ describe('feedsme', function () {
         }, function (err, res, body) {
           if (err) return done(err);
 
-          assume(app.feedsme.change).is.calledWith('dev', sinon.match({ promote: false, data: sinon.match(data) }), 'v2');
+          assume(app.feedsme.change).is.calledWith('dev', sinon.match({ promote: false, data: sinon.match(data) }));
+          assume(body).is.a('object');
+          assume(body.ok).is.true();
+          assume(res.statusCode).equals(200);
+
+          done();
+        });
+      });
+
+      it('defaults to promoting', function (done) {
+        sinon.stub(app.feedsme, 'trigger');
+
+        const { root: data } = clone(fixtures.first);
+
+        request.post({
+          uri: url.resolve(root, '/v2/change/dev'),
+          json: true,
+          body: { data }
+        }, function (err, res, body) {
+          if (err) return done(err);
+
+          assume(app.feedsme.trigger).is.calledWith('dev', sinon.match(data), true);
+          assume(body).is.a('object');
+          assume(body.ok).is.true();
+          assume(res.statusCode).equals(200);
+
+          done();
+        });
+      });
+
+      it('promotes when promote = true', function (done) {
+        sinon.stub(app.feedsme, 'trigger');
+
+        const { root: data } = clone(fixtures.first);
+
+        request.post({
+          uri: url.resolve(root, '/v2/change/dev'),
+          json: true,
+          body: { promote: true, data }
+        }, function (err, res, body) {
+          if (err) return done(err);
+
+          assume(app.feedsme.trigger).is.calledWith('dev', sinon.match(data), true);
           assume(body).is.a('object');
           assume(body.ok).is.true();
           assume(res.statusCode).equals(200);
@@ -441,6 +483,12 @@ describe('feedsme', function () {
         assume(release.dependents).hasOwn(child.name);
         assume(release.dependents[child.name]).equals(childPackage.version);
 
+        mockRequests(childPackage.name, childPackage.version);
+        const [noPromoteBuildInfo] = await Promise.all([
+          waitCarpenter(),
+          change('test', root, false)
+        ]);
+        assume(noPromoteBuildInfo.body.promote).false();
 
         // mock the requests for the dependent build triggered by this build of
         // main package.
