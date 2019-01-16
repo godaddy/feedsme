@@ -18,9 +18,7 @@ package.json is then processed in a few ways to allow tracking and triggering of
 dependent packages to be built. To make it concrete, a dependent package of
 package `A` would be package `B` if `B` has `A` as a dependency. So now if a new
 version of `A` is published, a dependent build will be triggered for `B` to get
-the changes made to `A`. The
-
-latest work we have done to this project, creating
+the changes made to `A`. The latest work we have done to this project, creating
 a `release-line` data structure ensures that this is safely based on the given
 `semver` ranges. Lets start to get into the specifics
 
@@ -74,7 +72,7 @@ a 2 different scenarios that influence our course of action.
 
 Below we have diagrams of specific cases that we handle.
 
-## Dependent Duilds Diagram
+## Dependent Builds Diagram
 
 The premise for this diagram is that we have a package `child@5.0.0` that
 depends on package `root@^5.0.0`. From here we go through a sequence of

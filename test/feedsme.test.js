@@ -39,7 +39,7 @@ describe('feedsme', function () {
     // Fake carpenter responses.
     //
     nock(app.config.get('carpenter'))
-      .post('/build')
+      .post('/v2/build')
       .reply(200, function reply(uri, body) {
         carpenter.emit('build', uri, body, this);
 
@@ -69,7 +69,6 @@ describe('feedsme', function () {
   function waitCarpenter(type = 'build') {
     return new Promise((resolve) => {
       carpenter.once(type, (uri, body) => {
-        body = JSON.parse(body);
         resolve({ uri, body });
       });
     });
@@ -101,6 +100,10 @@ describe('feedsme', function () {
 
   after(function (next) {
     app.models.drop(() => app.close(next));
+  });
+
+  afterEach(function () {
+    sinon.restore();
   });
 
   describe('routes', function () {
@@ -178,6 +181,131 @@ describe('feedsme', function () {
           });
         }, done);
       });
+
+      it('Always promotes the build', function (done) {
+        sinon.stub(app.feedsme, 'change');
+
+        request.post({
+          uri: url.resolve(root, '/change/dev'),
+          json: true,
+          body: { name: 'pkg' }
+        }, function (err, res, body) {
+          if (err) return done(err);
+
+          assume(app.feedsme.change).is.calledWith('dev', sinon.match({ promote: true, data: sinon.match.object }));
+          assume(body).is.a('object');
+          assume(body.ok).is.true();
+          assume(res.statusCode).equals(200);
+
+          done();
+        });
+      });
+    });
+
+    describe('POST /v2/change/dev', function () {
+      it('validates if it received a valid environment', function (next) {
+        request.post({
+          uri: url.resolve(root, '/v2/change/spacecake'),
+          json: true,
+          body: { mybody: 'is ready' }
+        }, function (err, res, body) {
+          if (err) return next(err);
+
+          assume(body).is.a('object');
+          assume(body.ok).is.false();
+          assume(body.message).includes('Internal Server');
+          assume(body.message).includes('Incorrect environment');
+          assume(res.statusCode).equals(500);
+
+          next();
+        });
+      });
+
+      it('validates if it received a valid package json', function (done) {
+        async.each([
+          {},
+          { hello: 'world' },
+          []
+        ], function process(payload, next) {
+          request.post({
+            uri: url.resolve(root, '/v2/change/dev'),
+            json: true,
+            body: payload
+          }, function (err, res, body) {
+            if (err) return next(err);
+
+            assume(body).is.a('object');
+            assume(body.ok).is.false();
+            assume(body.message).equals('Invalid payload received');
+            assume(res.statusCode).equals(400);
+
+            next();
+          });
+        }, done);
+      });
+
+      it('accepts a promotion option', function (done) {
+        sinon.stub(app.feedsme, 'change');
+
+        const data = { name: 'pkg' };
+
+        request.post({
+          uri: url.resolve(root, '/v2/change/dev'),
+          json: true,
+          body: { promote: false, data }
+        }, function (err, res, body) {
+          if (err) return done(err);
+
+          assume(app.feedsme.change).is.calledWith('dev', sinon.match({ promote: false, data: sinon.match(data) }));
+          assume(body).is.a('object');
+          assume(body.ok).is.true();
+          assume(res.statusCode).equals(200);
+
+          done();
+        });
+      });
+
+      it('defaults to promoting', function (done) {
+        sinon.stub(app.feedsme, 'trigger');
+
+        const { root: data } = clone(fixtures.first);
+
+        request.post({
+          uri: url.resolve(root, '/v2/change/dev'),
+          json: true,
+          body: { data }
+        }, function (err, res, body) {
+          if (err) return done(err);
+
+          assume(app.feedsme.trigger).is.calledWith('dev', sinon.match(data), true);
+          assume(body).is.a('object');
+          assume(body.ok).is.true();
+          assume(res.statusCode).equals(200);
+
+          done();
+        });
+      });
+
+      it('promotes when promote = true', function (done) {
+        sinon.stub(app.feedsme, 'trigger');
+
+        const { root: data } = clone(fixtures.first);
+
+        request.post({
+          uri: url.resolve(root, '/v2/change/dev'),
+          json: true,
+          body: { promote: true, data }
+        }, function (err, res, body) {
+          if (err) return done(err);
+
+          assume(app.feedsme.trigger).is.calledWith('dev', sinon.match(data), true);
+          assume(body).is.a('object');
+          assume(body.ok).is.true();
+          assume(res.statusCode).equals(200);
+
+          done();
+        });
+      });
     });
   });
 
@@ -231,7 +359,7 @@ describe('feedsme', function () {
     describe('#_triggerStrategy', function () {
       it('resolves latest version correctly as * and shows any version as inclusive', function () {
         const rootPkg = { name: 'what', version: '6.0.1' };
-        const pkg = { dependencies: { [rootPkg.name]: 'latest' }};
+        const pkg = { dependencies: { [rootPkg.name]: 'latest' } };
         const releaseLine = { version: '6.0.1' };
         const env = 'dev';
 
@@ -264,7 +392,6 @@ describe('feedsme', function () {
         next = assume.wait(2, next);
 
         carpenter.once('publish', function (uri, body) {
-          body = JSON.parse(body);
           assume(body).is.a('object');
           assume(body.name).equals(fixtures.parent.name);
           assume(body.dependencies).contains(fixtures.dependent.name);
@@ -299,22 +426,40 @@ describe('feedsme', function () {
       });
     });
 
-    describe('#change', function () {
+    describe(`#change`, function () {
+      async function change(env, data, promote = true) {
+        await fme.change(env, { data, promote });
+      }
+
+      before(function (done) {
+        async.parallel([
+          app.models.Package.remove.bind(app.models.Package, fixtures.dependent),
+          app.models.Package.remove.bind(app.models.Package, fixtures.parent),
+          app.models.Version.remove.bind(app.models.Version, fixtures.version),
+          app.models.BuildHead.remove.bind(app.models.BuildHead, fixtures.head),
+          app.models.Dependent.remove.bind(app.models.Dependent, fixtures.dependent),
+          app.models.Dependent.remove.bind(app.models.Dependent, fixtures.first.rootHead)
+        ], function () {
+          async.parallel([
+            app.models.Package.create.bind(app.models.Package, fixtures.dependent),
+            app.models.Package.create.bind(app.models.Package, fixtures.parent),
+            app.models.Version.create.bind(app.models.Version, fixtures.version),
+            app.models.BuildHead.create.bind(app.models.BuildHead, fixtures.head)
+          ], done);
+        });
+      });
+
       it('will trigger and resolve the package payload', async function () {
         const spyTrigger = sinon.spy(fme, 'trigger');
         const spyResolve = sinon.spy(fme, 'resolve');
         const spyDependent = sinon.spy(fme.models.Dependent, 'get');
 
-        await fme.change('prod', fixtures.payload);
+        await change('prod', fixtures.payload);
         assume(spyTrigger.calledOnce).to.be.true();
         assume(spyResolve.calledOnce).to.be.true();
         // since resolve is called first rather than in parallel
         assume(spyDependent.firstCall).to.not.equal(null);
         assume(spyDependent.firstCall).to.be.calledWith('email');
-
-        spyTrigger.restore();
-        spyResolve.restore();
-        spyDependent.restore();
       });
 
       it('will resolve and trigger consecutive package payloads, correctly create a release line and trigger build based on its version', async function () {
@@ -324,13 +469,13 @@ describe('feedsme', function () {
           Package.create(rootPackage),
           Version.create(rootVersion)
         ]);
-        await fme.change('dev', root);
+        await change('dev', root);
 
         await Promise.all([
           Package.create(childPackage),
           Version.create(childVersion)
         ]);
-        await fme.change('dev', child);
+        await change('dev', child);
 
         const release = await fme.release.get({ pkg: root.name });
         assume(release.pkg).equals(root.name);
@@ -338,20 +483,29 @@ describe('feedsme', function () {
         assume(release.dependents).hasOwn(child.name);
         assume(release.dependents[child.name]).equals(childPackage.version);
 
+        mockRequests(childPackage.name, childPackage.version);
+        const [noPromoteBuildInfo] = await Promise.all([
+          waitCarpenter(),
+          change('test', root, false)
+        ]);
+        assume(noPromoteBuildInfo.body.promote).false();
 
         // mock the requests for the dependent build triggered by this build of
         // main package.
         mockRequests(childPackage.name, childPackage.version);
         const [buildInfo] = await Promise.all([
           waitCarpenter(),
-          fme.change('test', root)
+          change('test', root)
         ]);
 
-        const childPayload = buildInfo.body;
+        const childPayload = buildInfo.body.data;
         const latest = fme.extractLatest(childPayload);
         // validate that this payload has the correct releaseVersion
         assume(childPayload.name).equals(child.name);
         assume(latest.version).equals(release.dependents[child.name]);
+
+        // Is the promote option being passed through?
+        assume(buildInfo.body.promote).true();
 
         await Promise.all([
           Package.create(latest),
@@ -363,7 +517,7 @@ describe('feedsme', function () {
           })
         ]);
 
-        await fme.change('test', childPayload);
+        await change('test', childPayload);
       });
 
       it('should simulate publish of existing root package (new major) and prevent dependent package builds when semver is not inclusive', async function () {
@@ -382,7 +536,7 @@ describe('feedsme', function () {
           Version.create(rootVersion)
         ]);
 
-        await fme.change(env, root);
+        await change(env, root);
         assume(logSpy.args[3]).contains(`Not triggering dependent build for huh@2.0.0, doesnt include what version 3.0.0`);
         sinon.restore();
 
@@ -398,7 +552,7 @@ describe('feedsme', function () {
           Version.create(childVersion)
         ]);
         mockRequests(childPackage.name, childPackage.version);
-        await fme.change(env, child);
+        await change(env, child);
 
         const release = await fme.release.get({ pkg: rootPackage.name });
         assume(release.version).equals(rootPackage.version);
@@ -426,7 +580,7 @@ describe('feedsme', function () {
         const prevrelease = await fme.release.get({ pkg: rootPackage.name });
         const [{ body }] = await Promise.all([
           waitCarpenter('publish'),
-          fme.change(env, root)
+          change(env, root)
         ]);
 
         const latest = fme.extractLatest(body);
@@ -443,13 +597,12 @@ describe('feedsme', function () {
           })
         ]);
 
-        await fme.change(env, body);
+        await change(env, body);
         const release = await fme.release.get({ pkg: rootPackage.name });
         assume(release.version).equals(rootPackage.version);
         assume(release.previousVersion).equals(prevrelease.version);
         assume(release.dependents).contains(latest.name);
         assume(release.dependents[latest.name]).equals(latest.version);
-
       });
 
       it('should publish new version of dependent package in semver of previous releaseLine and update accordingly', async function () {
@@ -465,7 +618,7 @@ describe('feedsme', function () {
         child = increment(child, 'payload', { env, inc, dependencies: [pkg] });
         child = increment(child, 'payload', { env, inc: 'minor' });
 
-        await fme.change(env, child);
+        await change(env, child);
 
         const release = await fme.release.get({ pkg, version });
         assume(release.dependents).contains(childPackage.name);
@@ -495,7 +648,7 @@ describe('feedsme', function () {
 
         const [buildInfo] = await Promise.all([
           waitCarpenter('publish'),
-          fme.change(env, dependentPayloadPublished)
+          change(env, dependentPayloadPublished)
         ]);
         const childPayload = buildInfo.body;
 
@@ -513,7 +666,7 @@ describe('feedsme', function () {
           })
         ]);
 
-        await fme.change(env, childPayload);
+        await change(env, childPayload);
 
         const release = await fme.release.get({ pkg: dependentPackage.name });
         assume(release.pkg).equals(dependentPackage.name);
@@ -534,13 +687,12 @@ describe('feedsme', function () {
         payload = increment(payload, 'payload', { env, inc });
         payload.__published = true;
 
-        await fme.change('dev', payload);
+        await change('dev', payload);
 
         const release = await fme.release.get({ pkg, version });
         assume(release.dependents).contains(parent.name);
         assume(release.dependents[parent.name]).equals(parent.version);
       });
-
     });
 
     describe('#destroy', function () {
