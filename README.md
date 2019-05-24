@@ -67,8 +67,8 @@ a 2 different scenarios that influence our course of action.
    due to the semver range of the dependent's dependency on the parent package.
 
 2. We are a promotion from `DEV -> TEST` or `TEST -> PROD`. We implicitly use
-   the `release-line` versions created on the initial publish of the package to use
-   for promoting the correct version of dependent packages.
+   the `release-line` versions created on the initial publish of the package to
+   use for promoting the correct version of dependent packages.
 
 Below we have diagrams of specific cases that we handle.
 
@@ -78,7 +78,7 @@ The premise for this diagram is that we have a package `child@5.0.0` that
 depends on package `root@^5.0.0`. From here we go through a sequence of
 publishes and promotions via the typical warehouse system workflow.
 
-![Build](./diagram/svg/build.svg)
+![Build](./diagrams/build.png)
 
 ## Tests
 
@@ -88,9 +88,6 @@ publishes and promotions via the typical warehouse system workflow.
 ```sh
 npm test
 ```
-
-## License
-MIT
 
 [carpenterd]: https://github.com/godaddy/carpenterd
 [Cassandra]: https://cassandra.apache.org/

@@ -12,7 +12,7 @@
     "watch": "npm run test:mocha -- --watch",
     "start": "bin/server",
     "lint": "eslint -c .eslintrc --fix './{lib,test}/**/*.js'",
-    "diagrams": "wrhs-diagrams --source=diagram/code --target=diagram/svg",
+    "diagrams": "wrhs-diagrams --source=diagrams/code --target=diagrams",
     "posttest": "npm run lint"
   },
   "repository": {
