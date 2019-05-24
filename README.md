@@ -1,7 +1,11 @@
-# feedsme
+# `feedsme`
 
-[![CircleCI](https://circleci.com/gh/godaddy/feedsme.svg?style=svg)](https://circleci.com/gh/godaddy/feedsme)
+[![Version npm](https://img.shields.io/npm/v/feedsme.svg?style=flat-square)](https://www.npmjs.com/package/feedsme)
+[![License](https://img.shields.io/npm/l/feedsme.svg?style=flat-square)](https://github.com/godaddy/feedsme/blob/master/LICENSE)
+[![npm Downloads](https://img.shields.io/npm/dm/feedsme.svg?style=flat-square)](https://npmcharts.com/compare/feedsme?minimal=true)
 [![Build Status](https://travis-ci.org/godaddy/feedsme.svg?branch=master)](https://travis-ci.org/godaddy/feedsme)
+[![codecov](https://codecov.io/gh/godaddy/feedsme/branch/master/graph/badge.svg)](https://codecov.io/gh/godaddy/feedsme)
+[![CircleCI](https://circleci.com/gh/godaddy/feedsme.svg?style=svg)](https://circleci.com/gh/godaddy/feedsme)
 
 Feedsme is a micro service that receive build completion notifications
 from [carpenterd]. When these notifications are received we will try to find all
