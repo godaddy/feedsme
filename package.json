@@ -12,7 +12,7 @@
     "watch": "npm run test:mocha -- --watch",
     "start": "bin/server",
     "lint": "eslint -c .eslintrc --fix './{lib,test}/**/*.js'",
-    "build": "mmdc -i diagram/code/build.mmd -o diagram/svg/build.svg",
+    "diagrams": "wrhs-diagrams --source=diagram/code --target=diagram/svg",
     "posttest": "npm run lint"
   },
   "repository": {
@@ -57,6 +57,7 @@
     "winston": "~2.2.0"
   },
   "devDependencies": {
+    "@wrhs/diagrams": "^1.0.0",
     "assume": "^2.2.0",
     "assume-sinon": "^1.0.1",
     "clone": "^2.1.2",
