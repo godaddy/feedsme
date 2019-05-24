@@ -23,8 +23,8 @@ cd feedsme && npm install
 
 ## Usage
 
-The module provides a [`bin/server`](./bin/server) script that starts the UI.
-Run the UI with `npm`.
+The module provides a [`bin/server`](./bin/server) script that starts the
+service. Run the service with `npm`.
 
 ```bash
 npm start
