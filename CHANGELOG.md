@@ -2,6 +2,7 @@
 
 - [#23] Update `README.md` and add badges.
   - Use `@wrhs/diagrams` to generate mermaid charts.
+  - Update patch/minor dependencies to mitigate security warnings.
 
 - [#22] Default documenation
   - Add: `CONTRUBUTING.md`, `CHANGELOG.md`, `SECURITY.md`
