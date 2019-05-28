@@ -3,7 +3,7 @@ sequenceDiagram
   participant DEV
   participant TEST
   participant PROD
-  Note left of LOCAL MACHINE: Normal promotion pipeline
+  Note left of LOCAL MACHINE: Normal promotion <br>pipeline
   LOCAL MACHINE->>+DEV: manual publish root@5.2.3
   LOCAL MACHINE-->>+DEV: auto triggered publish of child@5.0.1-0
   DEV->>+TEST: dist-tag promotion of root@5.2.3
@@ -13,17 +13,17 @@ sequenceDiagram
   Note left of LOCAL MACHINE: New Major Version
   LOCAL MACHINE->>+DEV: manual publish of root@6.0.0
   LOCAL MACHINE--X+DEV: auto trigger prevented of child@5.0.1-1
-  Note over LOCAL MACHINE,DEV: Prevents build because child depends on root@^5.0.0
+  Note over LOCAL MACHINE,DEV: Prevents build because child <br>depends on root@^5.0.0
   LOCAL MACHINE->>+DEV: manual publish of child@6.0.0
-  Note over LOCAL MACHINE,DEV: Updated child@6 to depend on root@^6.0.0
+  Note over LOCAL MACHINE,DEV: Updated child@6 to depend <br>on root@^6.0.0
   DEV->>+TEST: dist-tag promotion of root@6.0.0
   DEV-->>+TEST: auto triggered build of child@6.0.0
   TEST->>+PROD: dist-tag promotion of root@6.0.0
   TEST-->>+PROD: auto triggered build of child@6.0.0
-  Note left of LOCAL MACHINE: Publishing previous major version
+  Note left of LOCAL MACHINE: Publishing previous <br>major version
   LOCAL MACHINE->>+DEV: manual publish of root@5.3.0
   LOCAL MACHINE-->>+DEV: auto triggered build of child@5.0.1-1
-  Note over LOCAL MACHINE,DEV: Found last release line that supported ^5.3.0 semver range
+  Note over LOCAL MACHINE,DEV: Found last release line that <br>supported ^5.3.0 semver range
   DEV->>+TEST: dist-tag promotion of root@5.3.0
   DEV-->>+TEST: auto triggered build of child@5.0.1-1
   TEST->>+PROD: dist-tag promotion of root@5.3.0
