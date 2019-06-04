@@ -1,7 +1,11 @@
-# feedsme
+# `feedsme`
 
-[![CircleCI](https://circleci.com/gh/godaddy/feedsme.svg?style=svg)](https://circleci.com/gh/godaddy/feedsme)
+[![Version npm](https://img.shields.io/npm/v/feedsme.svg?style=flat-square)](https://www.npmjs.com/package/feedsme)
+[![License](https://img.shields.io/npm/l/feedsme.svg?style=flat-square)](https://github.com/godaddy/feedsme/blob/master/LICENSE)
+[![npm Downloads](https://img.shields.io/npm/dm/feedsme.svg?style=flat-square)](https://npmcharts.com/compare/feedsme?minimal=true)
 [![Build Status](https://travis-ci.org/godaddy/feedsme.svg?branch=master)](https://travis-ci.org/godaddy/feedsme)
+[![codecov](https://codecov.io/gh/godaddy/feedsme/branch/master/graph/badge.svg)](https://codecov.io/gh/godaddy/feedsme)
+[![CircleCI](https://circleci.com/gh/godaddy/feedsme.svg?style=svg)](https://circleci.com/gh/godaddy/feedsme)
 
 Feedsme is a micro service that receive build completion notifications
 from [carpenterd]. When these notifications are received we will try to find all
@@ -9,6 +13,22 @@ dependent modules on the package that was just build and send them in for
 re-build in [carpenterd].
 
 This ensures that all dependencies on your packages are always updated.
+
+## Install
+
+```
+git clone git@github.com:godaddy/feedsme.git
+cd feedsme && npm install
+```
+
+## Usage
+
+The module provides a [`bin/server`](./bin/server) script that starts the
+service. Run the service with `npm`.
+
+```bash
+npm start
+```
 
 ## Architecture overview
 
@@ -22,7 +42,7 @@ the changes made to `A`. The latest work we have done to this project, creating
 a `release-line` data structure ensures that this is safely based on the given
 `semver` ranges. Lets start to get into the specifics
 
-## `release-line`
+### `release-line`
 
 A `release-line` encapsulates the association between package `A`, and the
 version it was published as along with the associated package `B` with its
@@ -30,7 +50,7 @@ auto-incremented version that was published as a result of this system. With
 every publish we now know for certain which version of package `B` will be
 promoted along side package `A` as we move from `DEV -> TEST -> PROD`.
 
-### Resolve Dependents and DependentOf
+#### Resolve Dependents and DependentOf
 
 The first step of processing a `change` event is to resolve the `Dependent`
 packages of the package sent to feedsme as well as resolve any possible
@@ -49,7 +69,7 @@ parent or package `A`.
 
 These lookup tables are then used in the next step.
 
-## Trigger dependents or update `release-line` with dependentOf
+### Trigger dependents or update `release-line` with dependentOf
 
 We now use these lookup tables to make decisions around triggering dependent
 packages and/or adding a dependent to the given `release-line`. Here we have
@@ -67,18 +87,18 @@ a 2 different scenarios that influence our course of action.
    due to the semver range of the dependent's dependency on the parent package.
 
 2. We are a promotion from `DEV -> TEST` or `TEST -> PROD`. We implicitly use
-   the `release-line` versions created on the initial publish of the package to use
-   for promoting the correct version of dependent packages.
+   the `release-line` versions created on the initial publish of the package to
+   use for promoting the correct version of dependent packages.
 
 Below we have diagrams of specific cases that we handle.
 
-## Dependent Builds Diagram
+### Dependent Builds
 
 The premise for this diagram is that we have a package `child@5.0.0` that
 depends on package `root@^5.0.0`. From here we go through a sequence of
 publishes and promotions via the typical warehouse system workflow.
 
-![Build](./diagram/svg/build.svg)
+![Build](./diagrams/build.png)
 
 ## Tests
 
@@ -88,9 +108,6 @@ publishes and promotions via the typical warehouse system workflow.
 ```sh
 npm test
 ```
-
-## License
-MIT
 
 [carpenterd]: https://github.com/godaddy/carpenterd
 [Cassandra]: https://cassandra.apache.org/
