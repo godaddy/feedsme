@@ -64,6 +64,21 @@ describe('feedsme', function () {
 
         return require('fs').readFileSync(__filename); // eslint-disable-line no-sync
       });
+
+  }
+
+  function mockGetNpmPkg({ pkg = 'email', versions = ['2.0.0'] } = {}) {
+    nock(app.config.get('npm'))
+      .get(`/${encodeURIComponent(pkg)}`)
+      .reply(200, function () {
+        return {
+          name: pkg,
+          versions: versions.reduce((acc, ver) => {
+            acc[ver] = { name: pkg };
+            return acc;
+          }, {})
+        };
+      });
   }
 
   function waitCarpenter(type = 'build') {
@@ -312,6 +327,7 @@ describe('feedsme', function () {
   describe('Feedsme', function () {
     var fme;
 
+
     this.timeout(60000);
 
     before(function (next) {
@@ -335,6 +351,7 @@ describe('feedsme', function () {
     beforeEach(function () {
       fme = new Feedsme(app);
       mockRequests();
+      mockGetNpmPkg();
     });
 
     afterEach(function () {
@@ -361,9 +378,10 @@ describe('feedsme', function () {
         const rootPkg = { name: 'what', version: '6.0.1' };
         const pkg = { dependencies: { [rootPkg.name]: 'latest' } };
         const releaseLine = { version: '6.0.1' };
+        const registryRootPkg = { name: 'what', versions: { '6.0.1': {} } };
         const env = 'dev';
 
-        const { strategy, trigger } = fme._triggerStrategy({ rootPkg, pkg, releaseLine, env });
+        const { strategy, trigger } = fme._triggerStrategy({ registryRootPkg, rootPkg, pkg, releaseLine, env });
         assume(strategy).is.equal('current');
         assume(trigger).is.equal(true);
       });
@@ -430,8 +448,9 @@ describe('feedsme', function () {
       async function change(env, data, promote = true) {
         await fme.change(env, { data, promote });
       }
-
+      var versions;
       before(function (done) {
+        versions = new Map();
         async.parallel([
           app.models.Package.remove.bind(app.models.Package, fixtures.dependent),
           app.models.Package.remove.bind(app.models.Package, fixtures.parent),
@@ -449,6 +468,8 @@ describe('feedsme', function () {
         });
       });
 
+      after(() => { versions = null; });
+
       it('will trigger and resolve the package payload', async function () {
         const spyTrigger = sinon.spy(fme, 'trigger');
         const spyResolve = sinon.spy(fme, 'resolve');
@@ -462,167 +483,284 @@ describe('feedsme', function () {
         assume(spyDependent.firstCall).to.be.calledWith('email');
       });
 
-      it('will resolve and trigger consecutive package payloads, correctly create a release line and trigger build based on its version', async function () {
-        const { Package, Version } = fme.models;
-        const { root, rootPackage, rootVersion, child, childPackage, childVersion } = fixtures.first;
-        await Promise.all([
-          Package.create(rootPackage),
-          Version.create(rootVersion)
-        ]);
-        await change('dev', root);
+      describe('sequence with huh and what packages', function () {
 
-        await Promise.all([
-          Package.create(childPackage),
-          Version.create(childVersion)
-        ]);
-        await change('dev', child);
+        it('will resolve and trigger consecutive package payloads, correctly create a release line and trigger build based on its version', async function () {
+          const { Package, Version } = fme.models;
+          const { root, rootPackage, rootVersion, child, childPackage, childVersion } = fixtures.first;
+          await Promise.all([
+            Package.create(rootPackage),
+            Version.create(rootVersion)
+          ]);
+          await change('dev', root);
 
-        const release = await fme.release.get({ pkg: root.name });
-        assume(release.pkg).equals(root.name);
-        assume(release.version).equals(rootPackage.version);
-        assume(release.dependents).hasOwn(child.name);
-        assume(release.dependents[child.name]).equals(childPackage.version);
+          await Promise.all([
+            Package.create(childPackage),
+            Version.create(childVersion)
+          ]);
+          await change('dev', child);
 
-        mockRequests(childPackage.name, childPackage.version);
-        const [noPromoteBuildInfo] = await Promise.all([
-          waitCarpenter(),
-          change('test', root, false)
-        ]);
-        assume(noPromoteBuildInfo.body.promote).false();
+          const release = await fme.release.get({ pkg: root.name });
+          assume(release.pkg).equals(root.name);
+          assume(release.version).equals(rootPackage.version);
+          assume(release.dependents).hasOwn(child.name);
+          assume(release.dependents[child.name]).equals(childPackage.version);
 
-        // mock the requests for the dependent build triggered by this build of
-        // main package.
-        mockRequests(childPackage.name, childPackage.version);
-        const [buildInfo] = await Promise.all([
-          waitCarpenter(),
-          change('test', root)
-        ]);
+          mockRequests(childPackage.name, childPackage.version);
+          mockGetNpmPkg({ pkg: root.name, versions: [] });
+          const [noPromoteBuildInfo] = await Promise.all([
+            waitCarpenter(),
+            change('test', root, false)
+          ]);
+          assume(noPromoteBuildInfo.body.promote).false();
 
-        const childPayload = buildInfo.body.data;
-        const latest = fme.extractLatest(childPayload);
-        // validate that this payload has the correct releaseVersion
-        assume(childPayload.name).equals(child.name);
-        assume(latest.version).equals(release.dependents[child.name]);
+          versions.set(rootPackage.name, [rootPackage.version]);
+          // mock the requests for the dependent build triggered by this build of
+          // main package.
+          mockRequests(childPackage.name, childPackage.version);
+          mockGetNpmPkg({ pkg: rootPackage.name, versions: versions.get(rootPackage.name) });
+          const [buildInfo] = await Promise.all([
+            waitCarpenter(),
+            change('test', root)
+          ]);
 
-        // Is the promote option being passed through?
-        assume(buildInfo.body.promote).true();
+          const childPayload = buildInfo.body.data;
+          const latest = fme.extractLatest(childPayload);
+          // validate that this payload has the correct releaseVersion
+          assume(childPayload.name).equals(child.name);
+          assume(latest.version).equals(release.dependents[child.name]);
 
-        await Promise.all([
-          Package.create(latest),
-          Version.create({
-            versionId: `${latest.name}@${latest.version}`,
-            name: latest.name,
-            value: JSON.stringify(childPayload),
-            version: latest.version
-          })
-        ]);
+          // Is the promote option being passed through?
+          assume(buildInfo.body.promote).true();
 
-        await change('test', childPayload);
-      });
+          await Promise.all([
+            Package.create(latest),
+            Version.create({
+              versionId: `${latest.name}@${latest.version}`,
+              name: latest.name,
+              value: JSON.stringify(childPayload),
+              version: latest.version
+            })
+          ]);
 
-      it('should simulate publish of existing root package (new major) and prevent dependent package builds when semver is not inclusive', async function () {
-        const { Package, Version } = fme.models;
-        const env = 'dev';
-        const inc = 'major';
-        const logSpy = sinon.spy(fme.log, 'info');
-        let { root, rootPackage, rootVersion, child, childPackage, childVersion } = clone(fixtures.first);
+          await change('test', childPayload);
+        });
 
-        root = increment(root, 'payload', { env, inc });
-        rootPackage = increment(rootPackage, 'package', { env, inc });
-        rootVersion = increment(rootVersion, 'version', { env, inc });
+        it('should simulate publish of existing root package (new major) and prevent dependent package builds when semver is not inclusive', async function () {
+          const { Package, Version } = fme.models;
+          const env = 'dev';
+          const inc = 'major';
+          const logSpy = sinon.spy(fme.log, 'info');
+          let { root, rootPackage, rootVersion, child, childPackage, childVersion } = clone(fixtures.first);
 
-        await Promise.all([
-          Package.create(rootPackage),
-          Version.create(rootVersion)
-        ]);
+          const rootVersions = versions.get(rootPackage.name) || [];
 
-        await change(env, root);
-        assume(logSpy.args[3]).contains(`Not triggering dependent build for huh@2.0.0, doesnt include what version 3.0.0`);
-        sinon.restore();
+          root = increment(root, 'payload', { env, inc });
+          rootPackage = increment(rootPackage, 'package', { env, inc });
+          rootVersion = increment(rootVersion, 'version', { env, inc });
 
-        //
-        // Bump child package and dependencies to update release line
-        //
-        child = increment(child, 'payload', { env, inc, dependencies: [root.name] });
-        childPackage = increment(childPackage, 'package', { env, inc, dependencies: [root.name] });
-        childVersion = increment(childVersion, 'version', { env, inc });
-        // Manually publish so the release line gets
-        await Promise.all([
-          Package.create(childPackage),
-          Version.create(childVersion)
-        ]);
-        mockRequests(childPackage.name, childPackage.version);
-        await change(env, child);
+          await Promise.all([
+            Package.create(rootPackage),
+            Version.create({
+              versionId: rootVersion.versionId,
+              name: rootVersion.name,
+              version: rootVersion.version,
+              value: JSON.stringify(root)
+            })
+          ]);
 
-        const release = await fme.release.get({ pkg: rootPackage.name });
-        assume(release.version).equals(rootPackage.version);
-        assume(release.pkg).equals(rootPackage.name);
-        assume(release.dependents).contains(childPackage.name);
-        assume(release.dependents[childPackage.name]).equals(childPackage.version);
-      });
+          mockGetNpmPkg({ pkg: rootPackage.name, versions: rootVersions });
+          await change(env, root);
+          assume(logSpy.args[3]).contains(`Not triggering dependent build for huh@2.0.0, doesnt include what version 3.0.0`);
+          sinon.restore();
 
-      it('should simulate publish of existing root package (previous major) and build proper dependent package based on previous', async function () {
-        const { Package, Version } = fme.models;
-        let { root, rootPackage, rootVersion, childPackage } = clone(fixtures.first);
-        const env = 'dev';
-        const inc = 'minor';
+          rootVersions.push(rootPackage.version);
+          versions.set(rootPackage.name, rootVersions);
+          //
+          // Bump child package and dependencies to update release line
+          //
+          child = increment(child, 'payload', { env, inc, dependencies: [root.name] });
+          childPackage = increment(childPackage, 'package', { env, inc, dependencies: [root.name] });
+          childVersion = increment(childVersion, 'version', { env, inc });
 
-        root = increment(root, 'payload', { env, inc });
-        rootVersion = increment(rootVersion, 'version', { env, inc });
-        rootPackage = increment(rootPackage, 'package', { env, inc });
+          // Manually publish so the release line gets
+          await Promise.all([
+            Package.create(childPackage),
+            Version.create({
+              versionId: childVersion.versionId,
+              name: childVersion.name,
+              value: JSON.stringify(child),
+              version: childVersion.version
+            })
+          ]);
+          mockRequests(childPackage.name, childPackage.version);
 
-        mockRequests(childPackage.name, childPackage.version);
-        await Promise.all([
-          Package.create(rootPackage),
-          Version.create(rootVersion)
-        ]);
+          await change(env, child);
 
-        const prevrelease = await fme.release.get({ pkg: rootPackage.name });
-        const [{ body }] = await Promise.all([
-          waitCarpenter('publish'),
-          change(env, root)
-        ]);
+          const release = await fme.release.get({ pkg: rootPackage.name });
+          assume(release.version).equals(rootPackage.version);
+          assume(release.pkg).equals(rootPackage.name);
+          assume(release.dependents).contains(childPackage.name);
+          assume(release.dependents[childPackage.name]).equals(childPackage.version);
+        });
 
-        const latest = fme.extractLatest(body);
-        delete latest._id;
-        assume(semver.satisfies(root.version, latest.dependencies[rootPackage.name]));
+        it('should simulate publish of existing root package (previous major) and build proper dependent package based on previous', async function () {
+          const { Package, Version } = fme.models;
+          let { root, rootPackage, rootVersion, childPackage } = clone(fixtures.first);
+          const env = 'dev';
+          const inc = 'minor';
 
-        await Promise.all([
-          Package.create(latest),
-          Version.create({
-            versionId: `${latest.name}@${latest.version}`,
-            name: latest.name,
-            version: latest.version,
-            value: JSON.stringify(body)
-          })
-        ]);
+          const rootVersions = versions.get(rootPackage.name) || [];
 
-        await change(env, body);
-        const release = await fme.release.get({ pkg: rootPackage.name });
-        assume(release.version).equals(rootPackage.version);
-        assume(release.previousVersion).equals(prevrelease.version);
-        assume(release.dependents).contains(latest.name);
-        assume(release.dependents[latest.name]).equals(latest.version);
-      });
+          root = increment(root, 'payload', { env, inc });
+          rootVersion = increment(rootVersion, 'version', { env, inc });
+          rootPackage = increment(rootPackage, 'package', { env, inc });
 
-      it('should publish new version of dependent package in semver of previous releaseLine and update accordingly', async function () {
-        // relies on previous test currently
-        const pkg = 'what';
-        const version = '3.0.0';
-        const env = 'dev';
-        const inc = 'major';
+          mockRequests(childPackage.name, childPackage.version);
+          mockGetNpmPkg({ pkg: rootPackage.name, versions: rootVersions });
+          await Promise.all([
+            Package.create(rootPackage),
+            Version.create({
+              versionId: rootVersion.versionId,
+              version: rootVersion.version,
+              name: rootVersion.name,
+              value: JSON.stringify(root)
+            })
+          ]);
 
-        let { child, childPackage } = clone(fixtures.first);
-        childPackage = increment(childPackage, 'package', { env, inc, dependencies: [pkg] });
-        childPackage = increment(childPackage, 'package', { env, inc: 'minor' });
-        child = increment(child, 'payload', { env, inc, dependencies: [pkg] });
-        child = increment(child, 'payload', { env, inc: 'minor' });
+          const prevrelease = await fme.release.get({ pkg: rootPackage.name });
+          const [{ body }] = await Promise.all([
+            waitCarpenter('publish'),
+            change(env, root)
+          ]);
 
-        await change(env, child);
+          rootVersions.push(rootPackage.version);
+          versions.set(rootPackage.name, rootVersions);
+          const latest = fme.extractLatest(body);
+          delete latest._id;
+          assume(semver.satisfies(root.version, latest.dependencies[rootPackage.name]));
 
-        const release = await fme.release.get({ pkg, version });
-        assume(release.dependents).contains(childPackage.name);
-        assume(release.dependents[childPackage.name]).equals(childPackage.version);
+
+          await Promise.all([
+            Package.create(latest),
+            Version.create({
+              versionId: `${latest.name}@${latest.version}`,
+              name: latest.name,
+              version: latest.version,
+              value: JSON.stringify(body)
+            })
+          ]);
+
+          await change(env, body);
+          const release = await fme.release.get({ pkg: rootPackage.name });
+          assume(release.version).equals(rootPackage.version);
+          assume(release.previousVersion).equals(prevrelease.version);
+          assume(release.dependents).contains(latest.name);
+          assume(release.dependents[latest.name]).equals(latest.version);
+        });
+
+        it('should publish on current major after previous Major publish and properly trigger correct subpackages', async function () {
+          // relies on series of tests above for the `what` and `huh` packages
+          const { Package, Version } = fme.models;
+          let { root, rootPackage, rootVersion, childPackage } = clone(fixtures.first);
+          const env = 'dev';
+          const inc1 = 'major';
+          const inc2 = 'minor';
+
+          const rootVersions = versions.get(rootPackage.name) || [];
+
+          root = increment(increment(root, 'payload', { env, inc: inc1 }), 'payload', { env, inc: inc2 });
+          rootVersion = increment(increment(rootVersion, 'version', { env, inc: inc1 }), 'version', { env, inc: inc2 });
+          rootPackage = increment(increment(rootPackage, 'package', { env, inc: inc1 }), 'package', { env, inc: inc2 });
+
+          //
+          // Using the version from the previous major line that we are aiming
+          // at
+          //
+          mockRequests(childPackage.name, '3.0.0');
+          mockGetNpmPkg({ pkg: rootPackage.name, versions: rootVersions.slice() });
+          await Promise.all([
+            Package.create(rootPackage),
+            Version.create({
+              versionId: rootVersion.versionId,
+              version: rootVersion.version,
+              name: rootVersion.name,
+              value: JSON.stringify(root)
+            })
+          ]);
+
+          rootVersions.push(rootPackage.version);
+          versions.set(rootPackage.name, rootVersions);
+
+          const prevrelease = await fme.release.get({ pkg: rootPackage.name });
+          const [{ body }] = await Promise.all([
+            waitCarpenter('publish'),
+            change(env, root)
+          ]);
+
+          const latest = fme.extractLatest(body);
+          console.dir(latest);
+          delete latest._id;
+          assume(semver.satisfies(root.version, latest.dependencies[rootPackage.name]));
+          assume(latest.version).is.not.equal('3.0.0');
+
+          await Promise.all([
+            Package.create(latest),
+            Version.create({
+              versionId: `${latest.name}@${latest.version}`,
+              name: latest.name,
+              version: latest.version,
+              value: JSON.stringify(body)
+            })
+          ]);
+
+          await change(env, body);
+          const release = await fme.release.get({ pkg: rootPackage.name });
+          assume(release.version).equals(rootPackage.version);
+          assume(release.previousVersion).equals(prevrelease.version);
+          assume(release.dependents).contains(latest.name);
+          assume(release.dependents[latest.name]).equals(latest.version);
+
+        });
+
+        it('should publish new version of dependent package in semver of previous releaseLine and update accordingly', async function () {
+          // relies on previous test currently
+          //
+          const { Package, Version } = fme.models;
+          const pkg = 'what';
+          const version = '3.1.0';
+          const env = 'dev';
+          const inc = 'major';
+
+          let { child, childPackage, childVersion } = clone(fixtures.first);
+          childPackage = increment(childPackage, 'package', { env, inc, dependencies: [pkg] });
+          childPackage = increment(childPackage, 'package', { env, inc: 'minor' });
+          childPackage = increment(childPackage, 'package', { env, inc: 'minor' });
+          child = increment(child, 'payload', { env, inc, dependencies: [pkg] });
+          child = increment(child, 'payload', { env, inc: 'minor' });
+          child = increment(child, 'payload', { env, inc: 'minor' });
+          childVersion = increment(childVersion, 'version', { env, inc });
+          childVersion = increment(childVersion, 'version', { env, inc: 'minor' });
+          childVersion = increment(childVersion, 'version', { env, inc: 'minor' });
+
+          // Manually publish so the release line gets
+          await Promise.all([
+            Package.create(childPackage),
+            Version.create({
+              versionId: childVersion.versionId,
+              name: childVersion.name,
+              value: JSON.stringify(child),
+              version: childVersion.version
+            })
+          ]);
+
+          await change(env, child);
+
+          const release = await fme.release.get({ pkg, version });
+          console.log('previous release', release);
+          assume(release.dependents).contains(childPackage.name);
+          assume(release.dependents[childPackage.name]).equals(childPackage.version);
+        });
       });
 
       it('should simulate publish of existing root package (new major) and bump  version of dependent package when semver is inclusive', async function () {
