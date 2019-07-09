@@ -699,7 +699,6 @@ describe('feedsme', function () {
           ]);
 
           const latest = fme.extractLatest(body);
-          console.dir(latest);
           delete latest._id;
           assume(semver.satisfies(root.version, latest.dependencies[rootPackage.name]));
           assume(latest.version).is.not.equal('3.0.0');
@@ -757,7 +756,6 @@ describe('feedsme', function () {
           await change(env, child);
 
           const release = await fme.release.get({ pkg, version });
-          console.log('previous release', release);
           assume(release.dependents).contains(childPackage.name);
           assume(release.dependents[childPackage.name]).equals(childPackage.version);
         });
