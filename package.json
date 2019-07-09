@@ -45,6 +45,7 @@
     "express-async-handler": "^1.1.4",
     "json-stream": "^1.0.0",
     "make-promises-safe": "^1.1.0",
+    "npm-registry-client": "^8.6.0",
     "one-time": "0.0.4",
     "p-filter": "^1.0.0",
     "p-limit": "^2.2.0",
