@@ -12,7 +12,7 @@
   },
   "carpenter": "http://localhost:1339",
   "warehouse": "http://localhost:8080",
-  "npm": "http://localhost:2390",
+  "npm": "http://fake:auth@localhost:2390",
   "datastar": {
     "config": {
       "keyspace": "feedsme_test",
