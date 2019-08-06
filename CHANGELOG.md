@@ -1,5 +1,6 @@
 # CHANGELOG
 
+- [#26] Fix subtle bug in edge case handling to exclude the version being published
 - [#25] Fix edge case for current -> previous -> current package publishes
   with proper auto triggering of dependent builds
 
@@ -15,3 +16,5 @@
 
 [#22]: https://github.com/godaddy/feedsme/pull/22
 [#23]: https://github.com/godaddy/feedsme/pull/23
+[#25]: https://github.com/godaddy/feedsme/pull/25
+[#26]: https://github.com/godaddy/feedsme/pull/26
