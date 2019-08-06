@@ -558,6 +558,13 @@ describe('feedsme', function () {
           root = increment(root, 'payload', { env, inc });
           rootPackage = increment(rootPackage, 'package', { env, inc });
           rootVersion = increment(rootVersion, 'version', { env, inc });
+          //
+          // The rootPackage version  will be included since it will have
+          // already been published by the time we get to feedsme logic and it
+          // is what we are creating the dependent for!
+          //
+          rootVersions.push(rootPackage.version);
+          versions.set(rootPackage.name, rootVersions);
 
           await Promise.all([
             Package.create(rootPackage),
@@ -569,13 +576,12 @@ describe('feedsme', function () {
             })
           ]);
 
-          mockGetNpmPkg({ pkg: rootPackage.name, versions: rootVersions });
+          mockGetNpmPkg({ pkg: rootPackage.name, versions: rootVersions.slice() });
           await change(env, root);
-          assume(logSpy.args[3]).contains(`Not triggering dependent build for huh@2.0.0, doesnt include what version 3.0.0`);
+          assume(logSpy.args[4]).contains(`Not triggering dependent build for huh@2.0.0, doesnt include what version 3.0.0`);
           sinon.restore();
 
-          rootVersions.push(rootPackage.version);
-          versions.set(rootPackage.name, rootVersions);
+
           //
           // Bump child package and dependencies to update release line
           //
@@ -615,9 +621,16 @@ describe('feedsme', function () {
           root = increment(root, 'payload', { env, inc });
           rootVersion = increment(rootVersion, 'version', { env, inc });
           rootPackage = increment(rootPackage, 'package', { env, inc });
+          //
+          // The rootPackage version  will be included since it will have
+          // already been published by the time we get to feedsme logic and it
+          // is what we are creating the dependent for!
+          //
+          rootVersions.push(rootPackage.version);
+          versions.set(rootPackage.name, rootVersions);
 
           mockRequests(childPackage.name, childPackage.version);
-          mockGetNpmPkg({ pkg: rootPackage.name, versions: rootVersions });
+          mockGetNpmPkg({ pkg: rootPackage.name, versions: rootVersions.slice() });
           await Promise.all([
             Package.create(rootPackage),
             Version.create({
@@ -634,12 +647,9 @@ describe('feedsme', function () {
             change(env, root)
           ]);
 
-          rootVersions.push(rootPackage.version);
-          versions.set(rootPackage.name, rootVersions);
           const latest = fme.extractLatest(body);
           delete latest._id;
           assume(semver.satisfies(root.version, latest.dependencies[rootPackage.name]));
-
 
           await Promise.all([
             Package.create(latest),
@@ -672,7 +682,13 @@ describe('feedsme', function () {
           root = increment(increment(root, 'payload', { env, inc: inc1 }), 'payload', { env, inc: inc2 });
           rootVersion = increment(increment(rootVersion, 'version', { env, inc: inc1 }), 'version', { env, inc: inc2 });
           rootPackage = increment(increment(rootPackage, 'package', { env, inc: inc1 }), 'package', { env, inc: inc2 });
-
+          //
+          // The rootPackage version  will be included since it will have
+          // already been published by the time we get to feedsme logic and it
+          // is what we are creating the dependent for!
+          //
+          rootVersions.push(rootPackage.version);
+          versions.set(rootPackage.name, rootVersions);
           //
           // Using the version from the previous major line that we are aiming
           // at
@@ -688,9 +704,6 @@ describe('feedsme', function () {
               value: JSON.stringify(root)
             })
           ]);
-
-          rootVersions.push(rootPackage.version);
-          versions.set(rootPackage.name, rootVersions);
 
           const prevrelease = await fme.release.get({ pkg: rootPackage.name });
           const [{ body }] = await Promise.all([
