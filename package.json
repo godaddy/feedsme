@@ -51,7 +51,7 @@
     "p-limit": "^2.2.0",
     "semver": "^5.7.0",
     "slay": "^1.0.0",
-    "slay-config": "^2.0.1",
+    "slay-config": "^2.3.0",
     "slay-log": "^2.1.0",
     "warehouse-models": "^5.9.1",
     "warehouse.ai-api-client": "~2.0.1",
