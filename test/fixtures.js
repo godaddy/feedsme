@@ -35,7 +35,6 @@ var fixtures = {
 };
 
 fixtures.version = {
-  versionId: 'cows@2.0.0',
   value: JSON.stringify({
     'name': fixtures.parent.name,
     'dist-tags': {

@@ -18,6 +18,9 @@ describe('feedsme', function () {
   var clone = require('clone');
   var fixtures = require('./fixtures');
 
+  process.env.AWS_ACCESS_KEY_ID = 'foobar';
+  process.env.AWS_SECRET_ACCESS_KEY = 'foobar';
+
   var carpenter = new EventEmitter();
   var root;
   var app;
@@ -390,16 +393,15 @@ describe('feedsme', function () {
     describe('#resolve', function () {
       it('only adds private dependencies to dependend', async function () {
         await fme.resolve('dev', fixtures.parent);
-
-        const data = await fme.models.Dependent.get(fixtures.dependent.name);
-
+        await fme.models.Dependent.ensureTables();
+        const data = await fme.models.Dependent.findOne({name: fixtures.dependent.name});
         const dependent = data.dependents;
 
         assume(dependent).is.length(1);
         assume(dependent).is.a('array');
         assume(dependent).includes(fixtures.parent.name);
 
-        const depOf = await fme.models.DependentOf.get(fixtures.parent.name);
+        const depOf = await fme.models.DependentOf.findOne({name: fixtures.parent.name});
         const dependentOf = depOf.dependentOf;
         assume(dependentOf).equals(fixtures.dependent.name);
       });
