@@ -7,5 +7,12 @@ node_js:
 matrix:
   allow_failures:
   - node_js: "10"
+
 services:
-  - cassandra
+  - docker
+
+before_install:
+  - docker pull localstack/localstack
+  - docker run -d -p 127.0.0.1:4569:4569 -p 127.0.0.1:4572:4572 --name localstack localstack/localstack
+
+install: npm install
