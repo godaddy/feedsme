@@ -393,15 +393,12 @@ describe('feedsme', function () {
     describe('#resolve', function () {
       it('only adds private dependencies to dependend', async function () {
         await fme.resolve('dev', fixtures.parent);
-        await fme.models.Dependent.ensureTables();
-        const data = await fme.models.Dependent.findOne({name: fixtures.dependent.name});
+        const data = await fme.models.Dependent.get({ name: fixtures.dependent.name });
         const dependent = data.dependents;
-
         assume(dependent).is.length(1);
         assume(dependent).is.a('array');
         assume(dependent).includes(fixtures.parent.name);
-
-        const depOf = await fme.models.DependentOf.findOne({name: fixtures.parent.name});
+        const depOf = await fme.models.DependentOf.get({ pkg: fixtures.parent.name });
         const dependentOf = depOf.dependentOf;
         assume(dependentOf).equals(fixtures.dependent.name);
       });
@@ -420,10 +417,8 @@ describe('feedsme', function () {
           assume(body.env).equals('dev');
           assume(body['dist-tags'].latest).contains('-');
           assume(body.versions[body['dist-tags'].latest]._id).contains(body.version);
-
           next();
         });
-
         fme.trigger('dev', fixtures.dependentPayloadPublished).then(next.bind(null, null), next);
       });
 
@@ -476,13 +471,12 @@ describe('feedsme', function () {
         const spyTrigger = sinon.spy(fme, 'trigger');
         const spyResolve = sinon.spy(fme, 'resolve');
         const spyDependent = sinon.spy(fme.models.Dependent, 'get');
-
         await change('prod', fixtures.payload);
         assume(spyTrigger.calledOnce).to.be.true();
         assume(spyResolve.calledOnce).to.be.true();
         // since resolve is called first rather than in parallel
         assume(spyDependent.firstCall).to.not.equal(null);
-        assume(spyDependent.firstCall).to.be.calledWith('email');
+        assume(spyDependent.firstCall).to.be.calledWith({ name: 'email' });
       });
 
       describe('sequence with huh and what packages', function () {
@@ -538,7 +532,6 @@ describe('feedsme', function () {
           await Promise.all([
             Package.create(latest),
             Version.create({
-              versionId: `${latest.name}@${latest.version}`,
               name: latest.name,
               value: JSON.stringify(childPayload),
               version: latest.version
@@ -571,7 +564,6 @@ describe('feedsme', function () {
           await Promise.all([
             Package.create(rootPackage),
             Version.create({
-              versionId: rootVersion.versionId,
               name: rootVersion.name,
               version: rootVersion.version,
               value: JSON.stringify(root)
@@ -595,7 +587,6 @@ describe('feedsme', function () {
           await Promise.all([
             Package.create(childPackage),
             Version.create({
-              versionId: childVersion.versionId,
               name: childVersion.name,
               value: JSON.stringify(child),
               version: childVersion.version
@@ -636,7 +627,6 @@ describe('feedsme', function () {
           await Promise.all([
             Package.create(rootPackage),
             Version.create({
-              versionId: rootVersion.versionId,
               version: rootVersion.version,
               name: rootVersion.name,
               value: JSON.stringify(root)
@@ -656,7 +646,6 @@ describe('feedsme', function () {
           await Promise.all([
             Package.create(latest),
             Version.create({
-              versionId: `${latest.name}@${latest.version}`,
               name: latest.name,
               version: latest.version,
               value: JSON.stringify(body)
@@ -685,7 +674,7 @@ describe('feedsme', function () {
           rootVersion = increment(increment(rootVersion, 'version', { env, inc: inc1 }), 'version', { env, inc: inc2 });
           rootPackage = increment(increment(rootPackage, 'package', { env, inc: inc1 }), 'package', { env, inc: inc2 });
           //
-          // The rootPackage version  will be included since it will have
+          // The rootPackage version will be included since it will have
           // already been published by the time we get to feedsme logic and it
           // is what we are creating the dependent for!
           //
@@ -700,7 +689,6 @@ describe('feedsme', function () {
           await Promise.all([
             Package.create(rootPackage),
             Version.create({
-              versionId: rootVersion.versionId,
               version: rootVersion.version,
               name: rootVersion.name,
               value: JSON.stringify(root)
@@ -721,7 +709,6 @@ describe('feedsme', function () {
           await Promise.all([
             Package.create(latest),
             Version.create({
-              versionId: `${latest.name}@${latest.version}`,
               name: latest.name,
               version: latest.version,
               value: JSON.stringify(body)
@@ -761,7 +748,6 @@ describe('feedsme', function () {
           await Promise.all([
             Package.create(childPackage),
             Version.create({
-              versionId: childVersion.versionId,
               name: childVersion.name,
               value: JSON.stringify(child),
               version: childVersion.version
@@ -790,7 +776,6 @@ describe('feedsme', function () {
         await Promise.all([
           Package.create(dependentPackage),
           Version.create({
-            versionId: `${dependentPackage.name}@${dependentPackage.version}`,
             version: dependentPackage.version,
             name: dependentPackage.name,
             value: JSON.stringify(dependentPayloadPublished)
@@ -810,7 +795,6 @@ describe('feedsme', function () {
         await Promise.all([
           Package.create(latest),
           Version.create({
-            versionId: `${latest.name}@${latest.version}`,
             version: latest.version,
             name: latest.name,
             value: JSON.stringify(childPayload)
@@ -876,7 +860,6 @@ describe('feedsme', function () {
       }
       case 'version': {
         const version = semver.inc(ret.version, inc);
-        ret.versionId = `${ret.name}@${version}`;
         ret.version = version;
         break;
       }

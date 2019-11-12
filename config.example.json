@@ -13,18 +13,8 @@
   "carpenter": "http://localhost:1339",
   "warehouse": "http://localhost:8080",
   "npm": "http://fake:auth@localhost:2390",
-  "datastar": {
-    "config": {
-      "keyspace": "feedsme_test",
-      "user": "cassandra",
-      "password": "cassandra",
-      "hosts": [
-       "127.0.0.1"
-      ],
-      "keyspaceOptions": {
-        "class": "SimpleStrategy",
-        "replication_factor": 1
-      }
-    }
+  "dynamo": {
+    "endpoint": "http://localhost:4569",
+    "region": "us-east-1"
   }
 }
