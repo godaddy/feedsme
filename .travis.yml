@@ -2,11 +2,11 @@ sudo: true
 dist: trusty
 language: node_js
 node_js:
-  - "8"
   - "10"
+  - "12"
 matrix:
   allow_failures:
-  - node_js: "10"
+  - node_js: "12"
 
 services:
   - docker
