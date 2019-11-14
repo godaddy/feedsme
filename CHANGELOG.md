@@ -1,5 +1,6 @@
 # CHANGELOG
 
+### 4.0.0
 - [#31]: Update to use dynamodb based warehouse-models
 - [#26] Fix subtle bug in edge case handling to exclude the version being published
 - [#25] Fix edge case for current -> previous -> current package publishes
