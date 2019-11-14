@@ -35,7 +35,6 @@ var fixtures = {
 };
 
 fixtures.version = {
-  versionId: 'cows@2.0.0',
   value: JSON.stringify({
     'name': fixtures.parent.name,
     'dist-tags': {
@@ -79,7 +78,6 @@ fixtures.payload = {
 //
 fixtures.first = {};
 fixtures.first.rootVersion = {
-  versionId: 'what@2.0.0',
   value: '{}',
   name: 'what',
   version: '2.0.0'
@@ -152,7 +150,6 @@ fixtures.first.child = {
 };
 
 fixtures.first.childVersion = {
-  versionId: 'huh@2.0.0',
   value: JSON.stringify(fixtures.first.child),
   name: 'huh',
   version: '2.0.0'

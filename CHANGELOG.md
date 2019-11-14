@@ -1,5 +1,6 @@
 # CHANGELOG
 
+- [#31]: Update to use dynamodb based warehouse-models
 - [#26] Fix subtle bug in edge case handling to exclude the version being published
 - [#25] Fix edge case for current -> previous -> current package publishes
   with proper auto triggering of dependent builds
@@ -18,3 +19,4 @@
 [#23]: https://github.com/godaddy/feedsme/pull/23
 [#25]: https://github.com/godaddy/feedsme/pull/25
 [#26]: https://github.com/godaddy/feedsme/pull/26
+[#31]: https://github.com/godaddy/feedsme/pull/31
