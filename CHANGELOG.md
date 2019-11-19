@@ -1,5 +1,7 @@
 # CHANGELOG
 
+- Make clone a dep instead of devDep
+
 ### 4.0.0
 - [#31]: Update to use dynamodb based warehouse-models
 - [#26] Fix subtle bug in edge case handling to exclude the version being published
