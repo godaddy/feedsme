@@ -1,5 +1,7 @@
 # CHANGELOG
 
+### 4.0.2
+
 - Be more defensive with dependent data structure
 
 ### 4.0.1
