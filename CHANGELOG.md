@@ -1,6 +1,9 @@
 # CHANGELOG
 
+- Be more defensive with dependent data structure
+
 ### 4.0.1
+
 - Make clone a dep instead of devDep
 
 ### 4.0.0
