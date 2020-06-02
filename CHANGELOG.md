@@ -1,5 +1,7 @@
 # CHANGELOG
 
+- allow `DATABASE_REGION` env var to define dynamo region
+
 ### 4.0.2
 
 - Be more defensive with dependent data structure
