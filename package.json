@@ -37,13 +37,13 @@
   "license": "MIT",
   "dependencies": {
     "@wrhs/release-line": "^2.0.0",
-    "async": "^1.4.0",
+    "async": "^3.2.2",
     "aws-liveness": "^1.1.0",
     "aws-sdk": "^2.565.0",
     "body-parser": "^1.19.0",
     "carpenterd-api-client": "^2.0.0",
     "clone": "^2.1.2",
-    "dynamodb-x": "^1.2.3",
+    "dynamodb-x": "^2.0.0",
     "dynastar": "^1.1.0",
     "errs": "^0.3.0",
     "eventemitter3": "^1.1.0",
@@ -55,12 +55,12 @@
     "p-filter": "^1.0.0",
     "p-limit": "^2.2.0",
     "semver": "^5.7.0",
-    "slay": "^1.0.0",
+    "slay": "^2.0.0",
     "slay-config": "^2.0.1",
     "slay-log": "^2.1.0",
     "warehouse-models": "^6.0.0",
     "warehouse.ai-api-client": "~2.0.1",
-    "winston": "~2.2.0"
+    "winston": "~3.3.0"
   },
   "devDependencies": {
     "@wrhs/diagrams": "^1.0.0",
