@@ -55,7 +55,7 @@
     "p-filter": "^1.0.0",
     "p-limit": "^2.2.0",
     "semver": "^5.7.0",
-    "slay": "^1.0.0",
+    "slay": "^4.0.0",
     "slay-config": "^2.0.1",
     "slay-log": "^2.1.0",
     "warehouse-models": "^6.0.0",
