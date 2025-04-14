@@ -1,3 +1,6 @@
+> [!WARNING]
+> !!! THIS LIBRARY IS NO LONGER UNDER DEVEOPMENT AND HAS BEEN DEPRECATED IN NPM !!!
+
 # `feedsme`
 
 [![Version npm](https://img.shields.io/npm/v/feedsme.svg?style=flat-square)](https://www.npmjs.com/package/feedsme)
